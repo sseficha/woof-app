@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
   woof-app
@@ -11,6 +11,16 @@ Globals:
     Timeout: 8
 
 Resources:
+  WoofApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      # Cors: "'*'"
+      # Auth:
+      #   DefaultAuthorizer: MyCognitoAuthorizer
+      # Authorizers:
+      #   MyCognitoAuthorizer:
+      #     UserPoolArn: !GetAtt MyCognitoUserPool.Arn
   PublisherFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -24,12 +34,13 @@ Resources:
           topicArn: !Ref PublisherSns
           tableName: !Ref MessagesTable
       Policies:
-      - SNSPublishMessagePolicy:
-          TopicName: !GetAtt PublisherSns.TopicName
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt PublisherSns.TopicName
       Events:
         Publish:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId: !Ref WoofApi
             Path: /publish_message
             Method: post
 
@@ -43,14 +54,15 @@ Resources:
         - x86_64
       Environment:
         Variables:
-          tableName: !Ref  UserFriendsTable
+          tableName: !Ref UserFriendsTable
       Policies:
-      - DynamoDBCrudPolicy:
-          TableName: !Ref  UserFriendsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserFriendsTable
       Events:
         Publish:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId: !Ref WoofApi
             Path: /add_friend
             Method: post
 
@@ -64,14 +76,15 @@ Resources:
         - x86_64
       Environment:
         Variables:
-          tableName: !Ref  UserFriendsTable
+          tableName: !Ref UserFriendsTable
       Policies:
-      - DynamoDBCrudPolicy:
-          TableName: !Ref  UserFriendsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserFriendsTable
       Events:
         Publish:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId: !Ref WoofApi
             Path: /get_friends
             Method: get
 
@@ -85,20 +98,21 @@ Resources:
         - x86_64
       Environment:
         Variables:
-          tableName: !Ref  MessagesTable
+          tableName: !Ref MessagesTable
       Policies:
-      - DynamoDBCrudPolicy:
-          TableName: !Ref  MessagesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MessagesTable
       Events:
         Publish:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId: !Ref WoofApi
             Path: /get_messages
             Method: get
-  
+
   PublisherSns:
     Type: AWS::SNS::Topic
-    Properties: 
+    Properties:
       DisplayName: WOOF ###
       TopicName: PublisherSns
 
@@ -108,23 +122,19 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       TableName: "userFriends"
-      AttributeDefinitions: 
-        - 
-          AttributeName: "user_email"
+      AttributeDefinitions:
+        - AttributeName: "user_email"
           AttributeType: "S"
-        - 
-          AttributeName: "user_friend"
+        - AttributeName: "user_friend"
           AttributeType: "S"
-      KeySchema: 
-        - 
-          AttributeName: "user_email"
+      KeySchema:
+        - AttributeName: "user_email"
           KeyType: "HASH"
-        - 
-          AttributeName: "user_friend"
+        - AttributeName: "user_friend"
           KeyType: "RANGE"
-      ProvisionedThroughput: 
-        ReadCapacityUnits: "2"
-        WriteCapacityUnits: "2"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
 
   MessagesTable:
     Type: AWS::DynamoDB::Table
@@ -132,42 +142,36 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       TableName: "messages"
-      AttributeDefinitions: 
-        - 
-          AttributeName: "user_email"
+      AttributeDefinitions:
+        - AttributeName: "user_email"
           AttributeType: "S"
-        - 
-          AttributeName: "timestamp"
+        - AttributeName: "timestamp"
           AttributeType: "S"
-      KeySchema: 
-        - 
-          AttributeName: "user_email"
+      KeySchema:
+        - AttributeName: "user_email"
           KeyType: "HASH"
-        - 
-          AttributeName: "timestamp"
+        - AttributeName: "timestamp"
           KeyType: "RANGE"
-      ProvisionedThroughput: 
-        ReadCapacityUnits: "2"
-        WriteCapacityUnits: "2"
-
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
 
   # TestSnsSubscription:
   #   Type: AWS::SNS::Subscription
-  #   Properties: 
+  #   Properties:
   #     Endpoint: solon.seficha@pfizer.com
   #     Protocol: email
   #     TopicArn: !Ref PublisherSns
-
 # Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  # HelloWorldApi:
-  #   Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-  #   Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  # HelloWorldFunction:
-  #   Description: "Hello World Lambda Function ARN"
-  #   Value: !GetAtt HelloWorldFunction.Arn
-  # HelloWorldFunctionIamRole:
-  #   Description: "Implicit IAM Role created for Hello World function"
-  #   Value: !GetAtt HelloWorldFunctionRole.Arn
+# ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+# Find out more about other implicit resources you can reference within SAM
+# https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+# HelloWorldApi:
+#   Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+#   Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+# HelloWorldFunction:
+#   Description: "Hello World Lambda Function ARN"
+#   Value: !GetAtt HelloWorldFunction.Arn
+# HelloWorldFunctionIamRole:
+#   Description: "Implicit IAM Role created for Hello World function"
+#   Value: !GetAtt HelloWorldFunctionRole.Arn

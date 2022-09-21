@@ -3,3 +3,5 @@ samconfig.toml
 tests/
 events/
 __pycache__/
+.vscode/
+.aws-sam/

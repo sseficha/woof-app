@@ -16,6 +16,11 @@ def lambda_handler(event, context):
     )
     print(response["Items"])
     return {
+        'headers': {
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+        },
         "statusCode": 200,
         "body": json.dumps(
             response["Items"]
